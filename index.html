@@ -15554,11 +15554,12 @@ CC.localizarParaRequisicao=function(req){
     });
     this.vinculos.filter(v=>v.local_requisicao_id!=null && String(v.local_requisicao_id)===String(req.id)).forEach(v=>add(this.porId(v.consulta_id,v.consulta_tipo),v.criterio||'vínculo salvo',v.confianca));
 
+    const vinculoSeguro=out.length>0;
     this.externos.forEach(x=>{
         const ok=this.refsOficiais(x).some(r=>{
             const mesmoNumero=this.normalizarRef(r.numero)===alvoNum;
             const tipo=String(r.tipo||'').toUpperCase();
-            return mesmoNumero && (!tipo || tipo===alvoTipo);
+            return mesmoNumero && (tipo===alvoTipo || (!tipo && !vinculoSeguro));
         });
         if(ok) add(x,'requisição oficial',1);
     });
@@ -15581,7 +15582,7 @@ CC.boxRequisicao=function(req,m){
         <div><strong>Responsável:</strong> ${this.esc(x.responsavel||'—')}</div><div><strong>Requisição oficial:</strong> ${this.esc(refs||req.tipo+' '+req.numero)}</div>
       </div>
       <div class="cc-oficial-muted" style="margin-top:.55rem">Vínculo: ${this.esc(m.criterio)} · Sincronizado: ${this.data(x.sincronizado_em)}</div>
-      <div class="cc-oficial-actions"><button type="button" data-cc-detalhes="1" data-consulta-id="${this.esc(x.consulta_id)}" data-consulta-tipo="${this.esc(x.consulta_tipo)}">📜 Ocorrências oficiais</button></div>
+      <div class="cc-oficial-actions"><button type="button" data-cc-detalhes="1" data-consulta-id="${this.esc(x.consulta_id)}" data-consulta-tipo="${this.esc(x.consulta_tipo)}">📜 ${direta?'Detalhes oficiais':'Ocorrências oficiais'}</button></div>
     </div>`;
 };
 
@@ -15717,7 +15718,7 @@ CC.verDetalhes=async function(consultaId,consultaTipo){
     const modal=document.createElement('div'); modal.className='modal'; modal.style.display='block';
     modal.innerHTML=`<div class="modal-content" style="max-width:1120px;max-height:92vh;overflow:auto">
       <button class="close" onclick="this.closest('.modal').remove()">×</button>
-      <h2>🏛️ Consulta Compras — ${this.esc(x.modalidade||'')} ${this.esc(x.numero_licitacao||'')}</h2>
+      <h2>🏛️ Consulta Compras — ${this.esc(x.modalidade||'')} ${this.esc(x.tipo_registro==='REQUISIÇÃO'?x.numero_requisicao||'':x.numero_licitacao||'')}</h2>
       <div class="cc-oficial-grid" style="margin:.8rem 0">
         <div><strong>Processo:</strong> ${this.esc(x.numero_processo||'—')}</div>
         <div><strong>Situação:</strong> ${this.esc(x.situacao||'—')}</div>
