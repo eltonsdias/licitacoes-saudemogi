@@ -15371,7 +15371,10 @@ function cc34CriarAba(){
         </div>
         <div id="cc34-resumo" class="cc34-stats"></div>
         <div class="cc34-toolbar">
-          <div class="search-box" style="flex:1;min-width:260px"><span class="search-icon">🔍</span><input id="cc34-busca" type="text" placeholder="Licitação, PA, objeto, situação, responsável..." oninput="renderizarPainelConsultaCompras()"></div>
+          <div class="search-box" style="flex:1;min-width:260px"><span class="search-icon">🔍</span><input id="cc34-busca" type="text" placeholder="Licitação, RC, RS, RP, PA, objeto..." oninput="renderizarPainelConsultaCompras()"></div>
+          <select id="cc34-tipo" onchange="renderizarPainelConsultaCompras()" style="min-width:190px">
+            <option value="">Licitações e requisições</option><option value="licitacao">Somente licitações</option><option value="requisicao">Somente RC/RS/RP</option>
+          </select>
           <select id="cc34-situacao" onchange="renderizarPainelConsultaCompras()" style="min-width:190px"><option value="">Todas as situações</option></select>
         </div>
         <div id="cc34-conteudo"></div>
@@ -15403,10 +15406,16 @@ window.renderizarPainelConsultaCompras=function(){
         return;
     }
     const externos=Array.isArray(cc.externos)?cc.externos:[];
+    const requisicoes=Array.isArray(cc.requisicoesExternas)?cc.requisicoesExternas:[];
+    const todos=[
+        ...externos.map(x=>({...x,__ccTipo:'licitacao'})),
+        ...requisicoes.map(x=>({...x,__ccTipo:'requisicao'}))
+    ];
     const vinculos=Array.isArray(cc.vinculos)?cc.vinculos:[];
     const {correspondencias,ultima}=cc34Resumo(externos,vinculos);
     resumo.innerHTML=`
-      <div class="cc34-card"><b>${externos.length}</b><span>Registros oficiais</span></div>
+      <div class="cc34-card"><b>${externos.length}</b><span>Licitações oficiais</span></div>
+      <div class="cc34-card"><b>${requisicoes.length}</b><span>RC/RS/RP oficiais</span></div>
       <div class="cc34-card"><b>${vinculos.length}</b><span>Vínculos gravados</span></div>
       <div class="cc34-card"><b>${correspondencias}</b><span>Licitações locais vinculadas</span></div>
       <div class="cc34-card"><b>${ultima?ultima.toLocaleString('pt-BR'):'Nunca'}</b><span>Última sincronização disponível</span></div>`;
@@ -15414,7 +15423,7 @@ window.renderizarPainelConsultaCompras=function(){
     const sitSel=document.getElementById('cc34-situacao');
     if(sitSel){
         const atual=sitSel.value;
-        const sits=[...new Set(externos.map(x=>String(x.situacao||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+        const sits=[...new Set(todos.map(x=>String(x.situacao||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
         sitSel.innerHTML='<option value="">Todas as situações</option>'+sits.map(s=>`<option value="${cc34Esc(s)}">${cc34Esc(s)}</option>`).join('');
         if(sits.includes(atual)) sitSel.value=atual;
     }
@@ -15423,7 +15432,7 @@ window.renderizarPainelConsultaCompras=function(){
         conteudo.innerHTML='<div class="cc34-empty"><h3>🟡 Carregando dados oficiais...</h3><p>Aguarde a leitura do snapshot JSON.</p></div>';
         return;
     }
-    if(!externos.length){
+    if(!todos.length){
         conteudo.innerHTML=`<div class="cc34-empty">
           <h3>⚠️ Nenhum dado do Consulta Compras sincronizado ainda</h3>
           <p>A integração do site está ativa, mas o snapshot JSON publicado ainda não contém registros do portal Consulta Compras.</p>
@@ -15434,26 +15443,28 @@ window.renderizarPainelConsultaCompras=function(){
 
     const busca=String(document.getElementById('cc34-busca')?.value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
     const situacao=document.getElementById('cc34-situacao')?.value||'';
-    let lista=externos.filter(x=>{
+    const tipo=document.getElementById('cc34-tipo')?.value||'';
+    let lista=todos.filter(x=>{
+        if(tipo && x.__ccTipo!==tipo) return false;
         if(situacao && String(x.situacao||'')!==situacao) return false;
         if(!busca) return true;
-        const texto=[x.numero_licitacao,x.numero_processo,x.objeto,x.modalidade,x.situacao,x.responsavel,x.local_atual].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+        const texto=[x.tipo_requisicao,x.numero_requisicao,x.numero_licitacao,x.numero_processo,x.objeto,x.modalidade,x.situacao,x.responsavel,x.local_atual,x.unidade_requisitante].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
         return texto.includes(busca);
     });
     lista=lista.slice(0,500);
     conteudo.innerHTML=`
-      <div class="cc34-count">Exibindo ${lista.length} de ${externos.length} registro(s).</div>
+      <div class="cc34-count">Exibindo ${lista.length} de ${todos.length} registro(s): ${externos.length} licitação(ões) e ${requisicoes.length} RC/RS/RP.</div>
       <div class="cc34-table-wrap"><table class="cc34-table"><thead><tr>
-        <th>Licitação</th><th>Processo / PA</th><th>Modalidade</th><th>Situação oficial</th><th>Responsável</th><th>Local atual</th><th>Sincronizado</th><th></th>
+        <th>Registro</th><th>Processo / PA</th><th>Tipo / Modalidade</th><th>Situação oficial</th><th>Objeto</th><th>Local atual</th><th>Sincronizado</th><th></th>
       </tr></thead><tbody>${lista.map(x=>`<tr>
-        <td><b>${cc34Esc(x.numero_licitacao||'—')}</b></td>
+        <td><b>${cc34Esc(x.__ccTipo==='requisicao'?`${x.tipo_requisicao||'Req.'} ${x.numero_requisicao||'—'}`:x.numero_licitacao||'—')}</b></td>
         <td>${cc34Esc(x.numero_processo||'—')}</td>
         <td>${cc34Esc(x.modalidade||'—')}</td>
         <td><span class="cc-oficial-badge">${cc34Esc(x.situacao||'—')}</span></td>
-        <td>${cc34Esc(x.responsavel||'—')}</td>
+        <td>${cc34Esc(x.objeto||'—')}</td>
         <td>${cc34Esc(x.local_atual||'—')}</td>
         <td>${cc34Data(x.sincronizado_em)}</td>
-        <td><button class="btn btn-outline btn-sm" data-cc-detalhes="1" data-consulta-id="${cc34Esc(x.consulta_id)}" data-consulta-tipo="${cc34Esc(x.consulta_tipo)}">📜 Andamento</button></td>
+        <td><button class="btn btn-outline btn-sm" data-cc-detalhes="1" data-consulta-id="${cc34Esc(x.consulta_id)}" data-consulta-tipo="${cc34Esc(x.consulta_tipo)}">📜 ${x.__ccTipo==='requisicao'?'Detalhes':'Andamento'}</button></td>
       </tr>`).join('')}</tbody></table></div>`;
 };
 
