@@ -553,7 +553,8 @@
                 </div>
                 <div class="search-box mb-3">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="pesquisa-requisicao" placeholder="Pesquisar requisições..." oninput="debounceSearchRequisicoes(this.value)" value="2026">
+                    <input type="text" id="pesquisa-requisicao" placeholder="Pesquisar requisições..." oninput="debounceSearchRequisicoes(this.value)">
+                    <button type="button" class="btn btn-outline" onclick="limparFiltrosLista('requisicoes')">Limpar filtros</button>
                 </div>
                 <div id="requisicoes-container"><div class="workflow-card " data-tipo="RP">
                     <div class="workflow-header"><h4><span class="badge-tipo RP">RP</span> 001/2026<span title="Fluxo Personalizado: Sem nome">🎯</span></h4>
@@ -696,7 +697,8 @@
                 <div class="filters-panel">
                     <div class="search-box">
                         <span class="search-icon">🔍</span>
-                        <input type="text" id="pesquisa" placeholder="Pesquisar licitações..." oninput="debouncedSearch(this.value)" value="2026">
+                        <input type="text" id="pesquisa" placeholder="Pesquisar licitações..." oninput="debouncedSearch(this.value)">
+                        <button type="button" class="btn btn-outline" onclick="limparFiltrosLista('licitacoes')">Limpar filtros</button>
                     </div>
                     <div class="flex gap-1">
                         <button class="btn btn-outline" onclick="exportarExcel()" title="Exportar para Excel">📊 Excel</button>
@@ -1300,10 +1302,12 @@
 
         function debounce(func, wait) {
             let timeout;
-            return function(...args) {
+            const executar = function(...args) {
                 clearTimeout(timeout);
                 timeout = setTimeout(() => func(...args), wait);
             };
+            executar.cancel = () => clearTimeout(timeout);
+            return executar;
         }
 
         // Função para normalizar texto - remove acentos e converte para minúsculas
@@ -1317,6 +1321,7 @@
 
         const debouncedSearch = debounce((term) => { 
             AppState.filtros.search = normalizarTexto(term); 
+            FiltrosPersistentes.salvar();
             AppState.ui.paginaAtualLicitacoes = 1; 
             renderizarLicitacoes(); 
         }, 300);
@@ -7558,6 +7563,10 @@ const FiltrosPersistentes = {
             if (modalidadeSelect) modalidadeSelect.value = saved.modalidade || '';
             if (setorSelect) setorSelect.value = saved.setor || '';
             if (searchInput) searchInput.value = saved.search || '';
+            // Um valor salvo que deixou de existir no select não pode filtrar ocultamente.
+            if (statusSelect) AppState.filtros.status = statusSelect.value;
+            if (modalidadeSelect) AppState.filtros.modalidade = modalidadeSelect.value;
+            if (setorSelect) AppState.filtros.setor = setorSelect.value;
         } catch (e) {}
     }
 };
@@ -11195,6 +11204,7 @@ console.log('✅ Patch v25.5 — Ordenação de requisições corrigida');
                     <div class="search-box" style="flex:2;min-width:200px;">
                         <span class="search-icon">🔍</span>
                         <input type="text" id="pesquisa-dispensa" placeholder="Pesquisar..." oninput="debouncePesquisaDispensa(this.value)">
+                        <button type="button" class="btn btn-outline" onclick="limparFiltrosLista('dispensas')">Limpar filtros</button>
                     </div>
                 </div>
 
@@ -15376,6 +15386,7 @@ function cc34CriarAba(){
             <option value="">Licitações e requisições</option><option value="licitacao">Somente licitações</option><option value="requisicao">Somente RC/RS/RP</option>
           </select>
           <select id="cc34-situacao" onchange="renderizarPainelConsultaCompras()" style="min-width:190px"><option value="">Todas as situações</option></select>
+          <button type="button" class="btn btn-outline" onclick="limparFiltrosLista('consulta')">Limpar filtros</button>
         </div>
         <div id="cc34-conteudo"></div>
       </div>`;
@@ -16927,4 +16938,40 @@ console.log('\u2705 v37 \u2014 Dashboard unificado e relat\u00f3rios institucion
 })();
 </script>
 
+<script>
+// Limpa controles, estado, paginação e pesquisas ainda aguardando execução.
+function limparFiltrosLista(lista) {
+    const limparControles = (ids) => ids.forEach(id => {
+        const campo = document.getElementById(id);
+        if (campo) campo.value = id === 'filtro-ano-dispensa' ? 'todos' : '';
+    });
+    if (lista === 'consulta') {
+        limparControles(['cc34-busca', 'cc34-situacao', 'cc34-tipo']);
+        renderizarPainelConsultaCompras();
+    } else if (lista === 'requisicoes') {
+        debounceSearchRequisicoes.cancel();
+        limparControles(['pesquisa-requisicao', 'filtro-tipo', 'filtro-status', 'filtro-setor', 'filtro-prioridade']);
+        AppState.filtrosRequisicoes = {tipo:'', status:'', setor:'', prioridade:'', search:''};
+        AppState.ui.paginaAtualRequisicoes = 1;
+        renderizarRequisicoes();
+    } else if (lista === 'licitacoes') {
+        debouncedSearch.cancel();
+        limparControles(['pesquisa', 'filtro-status-licitacao', 'filtro-modalidade-licitacao', 'filtro-setor-licitacao']);
+        AppState.filtros = {status:'', modalidade:'', setor:'', search:'', ativo:'all'};
+        AppState.ui.paginaAtualLicitacoes = 1;
+        try { localStorage.removeItem('filtros_licitacoes'); } catch (_) {}
+        renderizarLicitacoes();
+    } else if (lista === 'dispensas') {
+        clearTimeout(window._debounceDispensa);
+        clearTimeout(window._debounceDispensaV365);
+        limparControles(['pesquisa-dispensa', 'filtro-natureza-dispensa', 'filtro-status-dispensa', 'filtro-ano-dispensa', 'filtro-fornecedor-dispensa', 'filtro-judicial-dispensa', 'filtro-tipo-contratacao-dispensa']);
+        const estado = window.EstadoDispensas;
+        if (estado) {
+            estado.filtros = {natureza:'', status:'', ano:'todos', search:'', fornecedor:'', judicial:'', tipoContratacao:''};
+            estado.pagina = 1;
+            window.renderizarDispensas();
+        }
+    }
+}
+</script>
 </body></html>
