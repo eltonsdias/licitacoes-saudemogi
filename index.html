@@ -16268,6 +16268,19 @@ function garantirFiltroTipo365(){
   return sel;
 }
 
+function compararNumeroDispensa365(a,b){
+  const referencia=d=>{
+    const texto=String(d.numero||d.consultaCompras?.numero_licitacao||'').trim();
+    const match=texto.match(/(\d+)\s*\/\s*((?:19|20)\d{2})/);
+    const numero=match?Number(match[1]):Number(texto.match(/\d+/)?.[0]);
+    const data=Date.parse(d.data||'');
+    const ano=match?Number(match[2]):(Number.isFinite(data)?new Date(data).getUTCFullYear():0);
+    return {ano,numero:Number.isFinite(numero)?numero:Infinity,texto};
+  };
+  const ra=referencia(a),rb=referencia(b);
+  return (rb.ano-ra.ano)||(ra.numero-rb.numero)||ra.texto.localeCompare(rb.texto,'pt-BR',{numeric:true})||String(a.id||'').localeCompare(String(b.id||''),'pt-BR',{numeric:true});
+}
+
 function listaFiltrada365(){
   const e=window.EstadoDispensas;
   if(!e) return [];
@@ -16286,10 +16299,8 @@ function listaFiltrada365(){
     const term=norm365(f.search);
     lista=lista.filter(d=>[d.numero,d.objeto,d.fornecedor,d.natureza,d.subelemento,d.setor,window.tipoContratacaoV365(d)].some(v=>norm365(v).includes(term)));
   }
-  lista.sort((a,b)=>{
-    const da=a?.data?Date.parse(a.data):0, db=b?.data?Date.parse(b.data):0;
-    return (db-da)||((Number(b?.id)||0)-(Number(a?.id)||0));
-  });
+  // Ordena a lista completa antes de separar as páginas.
+  lista.sort(compararNumeroDispensa365);
   return lista;
 }
 
