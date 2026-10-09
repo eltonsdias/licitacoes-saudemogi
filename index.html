@@ -2874,11 +2874,31 @@ function renderWorkflowProgress(l) {
             modal.style.display = 'block';
         }
 
-        function excluirLicitacaoComConfirmacao(id) {
+        async function excluirLicitacaoComConfirmacao(id) {
             if (!SistemaAuth.verificarPermissao('excluir_licitacao')) { mostrarNotificacao('Acesso negado.', 'error'); return; }
-            if (confirm('Tem certeza que deseja excluir esta licitação?')) {
-                AppState.licitacoes = AppState.licitacoes.filter(l => l.id !== id);
-                salvarDados(); renderizarLicitacoes(); mostrarNotificacao('Licitação excluída com sucesso', 'success');
+            if (excluirLicitacaoComConfirmacao.emAndamento) return;
+            const registro = AppState.licitacoes.find(l => String(l.id) === String(id));
+            if (!registro || !confirm('Tem certeza que deseja excluir esta licitação?')) return;
+            excluirLicitacaoComConfirmacao.emAndamento = true;
+            const indice = AppState.licitacoes.indexOf(registro);
+            AppState.licitacoes = AppState.licitacoes.filter(l => String(l.id) !== String(id));
+            try {
+                const resultado = await window.salvarDados();
+                if (!resultado?.ok) throw new Error(resultado?.conflito
+                    ? 'A exclusão não foi confirmada: os dados mudaram. Recarregue a página e tente novamente.'
+                    : 'A exclusão não foi confirmada no servidor. Verifique sua conexão e sessão e tente novamente.');
+                renderizarLicitacoes();
+                atualizarDashboard();
+                mostrarNotificacao('Licitação excluída e confirmada no servidor', 'success');
+            } catch (erro) {
+                if (!AppState.licitacoes.some(l => String(l.id) === String(id))) {
+                    AppState.licitacoes.splice(Math.min(indice, AppState.licitacoes.length), 0, registro);
+                }
+                try { localStorage.setItem('licitacoes', JSON.stringify(AppState.licitacoes)); } catch (_) {}
+                renderizarLicitacoes();
+                mostrarNotificacao(erro.message || 'Não foi possível confirmar a exclusão.', 'error');
+            } finally {
+                excluirLicitacaoComConfirmacao.emAndamento = false;
             }
         }
 
@@ -15125,6 +15145,7 @@ window.salvarDados=async function(){
         if(typeof mostrarNotificacao==='function') mostrarNotificacao('Os dados foram atualizados pelo sincronizador ou por outra sessão. Recarregue a página para preservar as alterações mais recentes.','warning');
     }
     else if(typeof mostrarNotificacao==='function') mostrarNotificacao('⚠️ Salvo localmente, mas o Supabase recusou a gravação. Verifique a sessão/RLS.','warning');
+    return r || {ok:false};
 };
 
 // Lê dados internos apenas para usuários autenticados que podem administrá-los.
