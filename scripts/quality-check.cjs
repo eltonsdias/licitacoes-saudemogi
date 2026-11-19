@@ -132,6 +132,7 @@ regression('filtro judicial combina com o tipo de contratacao', () => {
     window: { EstadoDispensas: estado, tipoContratacaoV365: item => item.tipo },
     norm365: value => String(value || '').toLowerCase()
   };
+  context.compararNumeroDispensa365 = compileNamedFunction('compararNumeroDispensa365', context);
   const filtrar = compileNamedFunction('listaFiltrada365', context);
   estado.filtros = { judicial: 'sim' };
   const judiciais = filtrar().length;
@@ -355,7 +356,7 @@ if (refreshUnificado.length < 2) fail('a Visao Geral nao acompanha todos os cicl
 const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)];
 for (const match of externalScripts) {
   const url = match[1];
-  if (/^https?:\/\//i.test(url) && !/(?:\/|@)\d+\.\d+\.\d+(?:\/|\b)/.test(url)) {
+  if (/^https?:\/\//i.test(url) && !/(?:\/|@|xlsx-)\d+\.\d+\.\d+(?:\/|\b)/.test(url)) {
     fail(`script externo sem versão exata: ${url}`);
   }
 }
