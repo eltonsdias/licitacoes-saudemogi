@@ -23,3 +23,6 @@ jobs:
 
       - name: Validate HTML structure and inline JavaScript
         run: node scripts/quality-check.cjs
+
+      - name: Validate security protections
+        run: node --test scripts/security-check.cjs

@@ -6,14 +6,17 @@
     <title>Sistema de Controle de Licitações - Secretaria de Saúde</title>
     
     <!-- Chart.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script src="./scripts/security-core.js"></script>
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self' https://tzdpksqrfhpytrwwirlz.supabase.co">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
 
     <!-- SheetJS para exportação Excel -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
 
     <!-- jsPDF para exportação PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js" integrity="sha384-voAWf+DQNBx+Eya8tGEw2DHSo8aPM0bTyJhi+ZbLLfV6HzrvPV/UqIvc3+ULj7bS" crossorigin="anonymous"></script>
     
     <style>
         /* ===== VARIÁVEIS CSS ===== */
@@ -1239,10 +1242,7 @@
         // ============================================================================
         const Validador = {
             sanitizarHTML(str) {
-                if (typeof str !== 'string') return str;
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
+                return SecurityCore.escapeHTML(str);
             },
             validarEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); },
             validarValor(valor) { const num = parseFloat(valor); return !isNaN(num) && num >= 0 && num <= 999999999.99; },
@@ -1832,21 +1832,21 @@ if (AppState.filtrosRequisicoes.search) {
                 const podeEditar = SistemaAuth.verificarPermissao('editar_requisicao');
                 const podeExcluir = SistemaAuth.verificarPermissao('excluir_requisicao');
 
-                html += `<div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${req.tipo}">
-                    <div class="workflow-header"><h4><span class="badge-tipo ${req.tipo || ''}">${req.tipo || 'N/A'}</span> ${Validador.sanitizarHTML(req.numero || 'N/A')}${req.fluxoPersonalizado ? `<span title="Fluxo Personalizado: ${Validador.sanitizarHTML(nomeFluxo || 'Sem nome')}">🎯</span>` : ''}</h4>
-                        <div class="btn-group"><span class="badge-prioridade ${req.prioridade || 'media'}">${req.prioridade || 'media'}</span><span class="badge ${badgeClasse}">${Validador.sanitizarHTML(req.status || 'Em Análise')}</span></div></div>
+                html += `<div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${SecurityCore.escapeHTML(req.tipo)}">
+                    <div class="workflow-header"><h4><span class="badge-tipo ${SecurityCore.escapeHTML(req.tipo || '')}">${SecurityCore.escapeHTML(req.tipo || 'N/A')}</span> ${Validador.sanitizarHTML(req.numero || 'N/A')}${req.fluxoPersonalizado ? `<span title="Fluxo Personalizado: ${Validador.sanitizarHTML(nomeFluxo || 'Sem nome')}">🎯</span>` : ''}</h4>
+                        <div class="btn-group"><span class="badge-prioridade ${SecurityCore.escapeHTML(req.prioridade || 'media')}">${SecurityCore.escapeHTML(req.prioridade || 'media')}</span><span class="badge ${badgeClasse}">${Validador.sanitizarHTML(req.status || 'Em Análise')}</span></div></div>
                     <div class="workflow-body"><p class="objeto"><strong>Objeto:</strong> ${Validador.sanitizarHTML(req.objeto || 'Não especificado')}</p>
                         <div class="workflow-meta"><div><strong>Setor:</strong> ${Validador.sanitizarHTML(req.setorOrigem || 'Não definido')}</div><div><strong>Valor:</strong> R$ ${valor.toFixed(2)}</div><div><strong>Status:</strong> ${Validador.sanitizarHTML(req.status || 'Em Análise')}</div><div><strong>Data Limite:</strong> ${formatarData(req.dataLimite) || 'Não definida'}</div><div><strong>Responsável:</strong> ${Validador.sanitizarHTML(req.responsavel || 'Não definido')}</div>${req.numeroProcesso ? `<div><strong>PA:</strong> ${Validador.sanitizarHTML(req.numeroProcesso)}</div>` : ''}${nomeFluxo ? `<div><strong>Fluxo:</strong> ${Validador.sanitizarHTML(nomeFluxo)}</div>` : ''}</div>
                         <div class="setor-atual">📍 Setor Atual: <strong>${Validador.sanitizarHTML(req.setorAtual || workflow[workflowIndex] || 'Não definido')}</strong> (Etapa ${workflowIndex + 1} de ${workflow.length})</div>
                         <div class="progress-bar"><div class="progress-fill" style="width: ${progresso}%"></div></div>
                         ${AppState.ui.mostrarTimeline ? `<div class="timeline-container"><h4>📋 Etapas do Workflow:</h4><div class="timeline">${workflow.map((setor, index) => `<div class="timeline-item ${index < workflowIndex ? 'completed' : (index === workflowIndex ? 'active' : '')}"><div class="timeline-content"><strong>${Validador.sanitizarHTML(setor)}</strong> ${index === workflowIndex ? '(Atual)' : (index < workflowIndex ? '(Concluído)' : '(Pendente)')}</div></div>`).join('')}</div></div>` : ''}
                     </div>
-                    <div class="workflow-actions"><button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${req.id})" ${workflowIndex <= 0 ? 'disabled' : ''}>↩️ Voltar</button>
-                        <button class="btn-workflow" onclick="avancarWorkflow(${req.id})" ${workflowIndex >= workflow.length - 1 ? 'disabled' : ''}>▶️ Avançar</button>
-                        ${podeEditar ? `<button class="btn-workflow warning" onclick="editarRequisicao(${req.id})">✏️ Editar</button>` : ''}
-                        <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${req.id})">📋 Gerar Licitação</button>
-                        ${podeExcluir ? `<button class="btn-workflow danger" onclick="excluirRequisicaoComConfirmacao(${req.id})">🗑️ Excluir</button>` : ''}
-                        <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${req.id})">📊 Ver Fluxo</button>
+                    <div class="workflow-actions"><button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${Number(req.id)})" ${workflowIndex <= 0 ? 'disabled' : ''}>↩️ Voltar</button>
+                        <button class="btn-workflow" onclick="avancarWorkflow(${Number(req.id)})" ${workflowIndex >= workflow.length - 1 ? 'disabled' : ''}>▶️ Avançar</button>
+                        ${podeEditar ? `<button class="btn-workflow warning" onclick="editarRequisicao(${Number(req.id)})">✏️ Editar</button>` : ''}
+                        <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${Number(req.id)})">📋 Gerar Licitação</button>
+                        ${podeExcluir ? `<button class="btn-workflow danger" onclick="excluirRequisicaoComConfirmacao(${Number(req.id)})">🗑️ Excluir</button>` : ''}
+                        <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${Number(req.id)})">📊 Ver Fluxo</button>
                     </div>
                 </div>`;
             });
@@ -1991,7 +1991,7 @@ if (AppState.filtrosRequisicoes.search) {
             if (!req) return;
             const modal = document.createElement('div');
             modal.className = 'modal';
-            modal.innerHTML = `<div class="modal-content" style="max-width: 600px;"><button class="close" onclick="this.parentElement.parentElement.remove()">×</button><h2>📊 Detalhes do Fluxo - ${Validador.sanitizarHTML(req.numero)}</h2><div class="workflow-preview-container"><h4>Fluxo de Trabalho:</h4><div class="timeline-preview">${(req.workflow || []).map((setor, index) => `<div class="timeline-preview-item ${index === req.workflowIndex ? 'active' : (index < req.workflowIndex ? 'completed' : '')}"><div class="timeline-content"><strong>${Validador.sanitizarHTML(setor)}</strong> ${index === req.workflowIndex ? '(Atual)' : (index < req.workflowIndex ? '(Concluído)' : '(Pendente)')}</div></div>`).join('')}</div></div><div class="flex-between mt-3"><button class="btn-workflow-control back" onclick="voltarWorkflowRequisicao(${req.id})" ${req.workflowIndex <= 0 ? 'disabled' : ''}>↩️ Voltar Etapa</button><button class="btn-workflow-control" onclick="avancarWorkflow(${req.id})" ${req.workflowIndex >= (req.workflow.length - 1) ? 'disabled' : ''}>▶️ Avançar Etapa</button></div><div class="mt-3"><h4>Histórico:</h4>${(req.historico || []).map(item => `<div class="sync-history-item"><div><strong>${formatarDataHora(item.data)}</strong><br><small>${Validador.sanitizarHTML(item.acao)} ${Validador.sanitizarHTML(item.setor)}</small></div><div><small>${Validador.sanitizarHTML(item.responsavel)}</small></div></div>`).join('')}</div></div></div>`;
+            modal.innerHTML = `<div class="modal-content" style="max-width: 600px;"><button class="close" onclick="this.parentElement.parentElement.remove()">×</button><h2>📊 Detalhes do Fluxo - ${Validador.sanitizarHTML(req.numero)}</h2><div class="workflow-preview-container"><h4>Fluxo de Trabalho:</h4><div class="timeline-preview">${(req.workflow || []).map((setor, index) => `<div class="timeline-preview-item ${index === req.workflowIndex ? 'active' : (index < req.workflowIndex ? 'completed' : '')}"><div class="timeline-content"><strong>${Validador.sanitizarHTML(setor)}</strong> ${index === req.workflowIndex ? '(Atual)' : (index < req.workflowIndex ? '(Concluído)' : '(Pendente)')}</div></div>`).join('')}</div></div><div class="flex-between mt-3"><button class="btn-workflow-control back" onclick="voltarWorkflowRequisicao(${Number(req.id)})" ${req.workflowIndex <= 0 ? 'disabled' : ''}>↩️ Voltar Etapa</button><button class="btn-workflow-control" onclick="avancarWorkflow(${Number(req.id)})" ${req.workflowIndex >= (req.workflow.length - 1) ? 'disabled' : ''}>▶️ Avançar Etapa</button></div><div class="mt-3"><h4>Histórico:</h4>${(req.historico || []).map(item => `<div class="sync-history-item"><div><strong>${formatarDataHora(item.data)}</strong><br><small>${Validador.sanitizarHTML(item.acao)} ${Validador.sanitizarHTML(item.setor)}</small></div><div><small>${Validador.sanitizarHTML(item.responsavel)}</small></div></div>`).join('')}</div></div></div>`;
             document.body.appendChild(modal);
             modal.style.display = 'block';
         }
@@ -2760,9 +2760,9 @@ function renderizarLicitacoes() {
                 ${l.workflow ? renderWorkflowProgress(l) : ''}
             </div>
             <div class="card-actions">
-                <button class="btn-icon" onclick="editarLicitacao(${l.id})" title="Editar">✏️</button>
-                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${l.id})" title="Fluxo">🔄</button>
-                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${l.id})" title="Excluir">🗑️</button>
+                <button class="btn-icon" onclick="editarLicitacao(${Number(l.id)})" title="Editar">✏️</button>
+                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${Number(l.id)})" title="Fluxo">🔄</button>
+                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${Number(l.id)})" title="Excluir">🗑️</button>
             </div>
         </div>`;
     }).join('');
@@ -3023,10 +3023,10 @@ function renderWorkflowProgress(l) {
         function carregarSetoresSelect() {
             ['setor-origem-requisicao', 'filtro-setor', 'setor', 'filtro-setor-licitacao', 'setor-dispensa-modal'].forEach(id => {
                 const select = document.getElementById(id);
-                if (select) select.innerHTML = '<option value="">Selecione...</option>' + AppState.setores.map(s => `<option value="${s.nome}">${s.nome}</option>`).join('');
+                if (select) select.replaceChildren(new Option('Selecione...', ''), ...AppState.setores.map(s => new Option(String(s.nome ?? ''), String(s.nome ?? ''))));
             });
             const selectModalidade = document.getElementById('modalidade');
-            if (selectModalidade) selectModalidade.innerHTML = '<option value="">Selecione...</option>' + AppState.modalidades.map(m => `<option value="${m.nome}">${m.nome}</option>`).join('');
+            if (selectModalidade) selectModalidade.replaceChildren(new Option('Selecione...', ''), ...AppState.modalidades.map(m => new Option(String(m.nome ?? ''), String(m.nome ?? ''))));
         }
 
         function carregarFiltrosLicitacoes() {
@@ -3059,13 +3059,13 @@ function renderWorkflowProgress(l) {
             if (fluxosComplexos.length) {
                 html += `<h4 class="mt-2">Fluxos Complexos:</h4>`;
                 fluxosComplexos.forEach(fluxo => {
-                    html += `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(fluxo.nome)}</strong><br><small>Tipo: ${fluxo.tipo || 'Qualquer'}</small><br><small>Setores: ${fluxo.sequencia ? fluxo.sequencia.map(s => Validador.sanitizarHTML(s)).join(' → ') : 'Nenhum'}</small><br><small>Criado: ${formatarData(fluxo.dataCriacao)}</small></div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarFluxo(${fluxo.id})" title="Editar fluxo">✏️</button><button class="btn-icon danger btn-sm" onclick="removerFluxo(${fluxo.id})" title="Remover fluxo">🗑️</button></div></div>`;
+                    html += `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(fluxo.nome)}</strong><br><small>Tipo: ${fluxo.tipo || 'Qualquer'}</small><br><small>Setores: ${fluxo.sequencia ? fluxo.sequencia.map(s => Validador.sanitizarHTML(s)).join(' → ') : 'Nenhum'}</small><br><small>Criado: ${formatarData(fluxo.dataCriacao)}</small></div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarFluxo(${Number(fluxo.id)})" title="Editar fluxo">✏️</button><button class="btn-icon danger btn-sm" onclick="removerFluxo(${Number(fluxo.id)})" title="Remover fluxo">🗑️</button></div></div>`;
                 });
             }
             if (fluxosSimples.length) {
                 html += `<h4 class="mt-2">Fluxos Simples:</h4>`;
                 fluxosSimples.forEach(fluxo => {
-                    html += `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(fluxo.setor)}</strong> → ${fluxo.proximo ? Validador.sanitizarHTML(fluxo.proximo) : 'undefined'}<br><small>Condição: ${fluxo.condicao}</small>${fluxo.dataAtualizacao ? `<br><small>Atualizado: ${formatarData(fluxo.dataAtualizacao)}</small>` : ''}</div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarFluxo(${fluxo.id})" title="Editar fluxo">✏️</button><button class="btn-icon danger btn-sm" onclick="removerFluxo(${fluxo.id})" title="Remover fluxo">🗑️</button></div></div>`;
+                    html += `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(fluxo.setor)}</strong> → ${fluxo.proximo ? Validador.sanitizarHTML(fluxo.proximo) : 'undefined'}<br><small>Condição: ${SecurityCore.escapeHTML(fluxo.condicao)}</small>${fluxo.dataAtualizacao ? `<br><small>Atualizado: ${formatarData(fluxo.dataAtualizacao)}</small>` : ''}</div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarFluxo(${Number(fluxo.id)})" title="Editar fluxo">✏️</button><button class="btn-icon danger btn-sm" onclick="removerFluxo(${Number(fluxo.id)})" title="Remover fluxo">🗑️</button></div></div>`;
                 });
             }
             container.innerHTML = html;
@@ -3075,14 +3075,14 @@ function renderWorkflowProgress(l) {
             const container = document.getElementById('lista-modalidades');
             if (!container) return;
             if (!AppState.modalidades.length) { container.innerHTML = '<p class="text-center" style="color: var(--text-light);">Nenhuma modalidade cadastrada</p>'; return; }
-            container.innerHTML = AppState.modalidades.map(m => `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><span>${Validador.sanitizarHTML(m.nome)}</span><button class="btn-icon danger btn-sm" onclick="removerModalidade(${m.id})" title="Remover modalidade">🗑️</button></div>`).join('');
+            container.innerHTML = AppState.modalidades.map(m => `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><span>${Validador.sanitizarHTML(m.nome)}</span><button class="btn-icon danger btn-sm" onclick="removerModalidade(${Number(m.id)})" title="Remover modalidade">🗑️</button></div>`).join('');
         }
 
         function carregarListaSetores() {
             const container = document.getElementById('lista-setores');
             if (!container) return;
             if (!AppState.setores.length) { container.innerHTML = '<p class="text-center" style="color: var(--text-light);">Nenhum setor cadastrado</p>'; return; }
-            container.innerHTML = AppState.setores.map(s => `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(s.nome)}</strong>${s.responsavel ? `<br><small>Responsável: ${Validador.sanitizarHTML(s.responsavel)}</small>` : ''}${s.dataAtualizacao ? `<br><small>Atualizado: ${formatarData(s.dataAtualizacao)}</small>` : ''}</div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarSetor(${s.id})" title="Editar setor">✏️</button><button class="btn-icon danger btn-sm" onclick="removerSetor(${s.id})" title="Remover setor">🗑️</button></div></div>`).join('');
+            container.innerHTML = AppState.setores.map(s => `<div class="flex-between mb-1 p-1" style="background: var(--background); border-radius: 6px; padding: 0.5rem;"><div><strong>${Validador.sanitizarHTML(s.nome)}</strong>${s.responsavel ? `<br><small>Responsável: ${Validador.sanitizarHTML(s.responsavel)}</small>` : ''}${s.dataAtualizacao ? `<br><small>Atualizado: ${formatarData(s.dataAtualizacao)}</small>` : ''}</div><div class="flex gap-1"><button class="btn-icon btn-sm" onclick="editarSetor(${Number(s.id)})" title="Editar setor">✏️</button><button class="btn-icon danger btn-sm" onclick="removerSetor(${Number(s.id)})" title="Remover setor">🗑️</button></div></div>`).join('');
         }
 
         function adicionarModalidade() {
@@ -3322,7 +3322,7 @@ function renderWorkflowProgress(l) {
             }
 
             const selecionarOrigem = () => {
-                const opt = document.querySelector(`#requisicoes-origem option[value="${req.id}"]`);
+                const opt = document.querySelector(`#requisicoes-origem option[value="${Number(req.id)}"]`);
                 if (opt) { opt.selected = true; atualizarChipsRequisicoes(); }
             };
             selecionarOrigem();
@@ -3414,7 +3414,7 @@ function renderWorkflowProgress(l) {
             else if (valor === 'emergencial') { fluxo = FLUXOS_LICITACAO.emergencial; nome = 'Fluxo Emergencial'; }
             else if (valor === 'simplificado') { fluxo = FLUXOS_LICITACAO.simplificado; nome = 'Fluxo Simplificado'; }
             if (!fluxo.length) { preview.style.display = 'none'; return; }
-            preview.innerHTML = `<h4>📋 ${nome}:</h4><div class="timeline-preview">${fluxo.map((e, i) => `<div class="timeline-preview-item ${i === 0 ? 'active' : ''}"><div class="timeline-content"><strong>${Validador.sanitizarHTML(e)}</strong>${i === 0 ? ' (Início)' : ''}</div></div>`).join('')}</div><small>Este fluxo será aplicado à tramitação interna da licitação (${fluxo.length} etapas)</small>`;
+            preview.innerHTML = `<h4>📋 ${SecurityCore.escapeHTML(nome)}:</h4><div class="timeline-preview">${fluxo.map((e, i) => `<div class="timeline-preview-item ${i === 0 ? 'active' : ''}"><div class="timeline-content"><strong>${Validador.sanitizarHTML(e)}</strong>${i === 0 ? ' (Início)' : ''}</div></div>`).join('')}</div><small>Este fluxo será aplicado à tramitação interna da licitação (${fluxo.length} etapas)</small>`;
             preview.style.display = 'block';
         }
 
@@ -3752,10 +3752,11 @@ function exportarPDF() {
                 const file = e.target.files[0];
                 if (!file) return;
                 
+                if (file.size > 20 * 1024 * 1024) { mostrarNotificacao('Arquivo excede o limite de 20 MB.', 'error'); return; }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const backup = JSON.parse(e.target.result);
+                        const backup = SecurityCore.validarBackup(JSON.parse(e.target.result));
                         
                         // Validar estrutura do backup
                         if (!backup.dados || !backup.metadados) {
@@ -4016,10 +4017,11 @@ function importarBackupAvancado() {
             return;
         }
         
-        const reader = new FileReader();
+        if (file.size > 20 * 1024 * 1024) { mostrarNotificacao('Arquivo excede o limite de 20 MB.', 'error'); return; }
+                const reader = new FileReader();
         reader.onload = function(e) {
             try {
-                const backup = JSON.parse(e.target.result);
+                const backup = SecurityCore.validarBackup(JSON.parse(e.target.result));
                 
                 // Validar estrutura do backup (compatível com versões antigas)
                 let dadosValidos = false;
@@ -4098,6 +4100,7 @@ function importarBackupAvancado() {
 
 function importarBackupComOpcoes(modo) {
     try {
+        if (!SistemaAuth.verificarPermissao('admin')) throw new Error('Acesso negado.');
         // Pegar o backup da variável global
         const backup = window.tempBackupData;
         if (!backup) {
@@ -4105,6 +4108,8 @@ function importarBackupComOpcoes(modo) {
             return;
         }
         
+        SecurityCore.validarBackup(backup);
+        if (!['replace','merge'].includes(modo)) throw new Error('Operação inválida.');
         if (modo === 'replace') {
             // Substituir completamente
             if (!confirm('⚠️ ATENÇÃO: Isso APAGARÁ TODOS OS DADOS ATUAIS e substituirá pelo backup. Continuar?')) {
@@ -4816,9 +4821,9 @@ function renderizarFluxoCard(l) {
         <div class="badge badge-info">Etapa ${idx+1} de ${total}</div></div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
         <div class="flex gap-1 mt-2">
-            ${idx>0?`<button class="btn-sm btn-outline" onclick="voltarWorkflowLicitacao(${l.id})">↩️ Voltar</button>`:''}
-            <button class="btn-sm" onclick="avancarWorkflowLicitacao(${l.id})">▶️ Avançar</button>
-            <button class="btn-sm btn-outline" onclick="verDetalhesCompletosFluxoLicitacao(${l.id})">📊 Ver Fluxo</button>
+            ${idx>0?`<button class="btn-sm btn-outline" onclick="voltarWorkflowLicitacao(${Number(l.id)})">↩️ Voltar</button>`:''}
+            <button class="btn-sm" onclick="avancarWorkflowLicitacao(${Number(l.id)})">▶️ Avançar</button>
+            <button class="btn-sm btn-outline" onclick="verDetalhesCompletosFluxoLicitacao(${Number(l.id)})">📊 Ver Fluxo</button>
         </div></div>`;
 }
 
@@ -4846,7 +4851,7 @@ function renderizarLicitacoes() {
     container.innerHTML = paginada.map(l => {
         const urg = calcularUrgencia(l);
         const origens = (l.requisicoesOrigem||[]).map(rid=>{const r=AppState.requisicoes.find(x=>x.id===rid);return r?n(r.numero||''):null;}).filter(Boolean).join(', ');
-        return `<div class="licitacao-card ${urg.classe}" data-id="${l.id}">
+        return `<div class="licitacao-card ${urg.classe}" data-id="${Number(l.id)}">
             <div class="card-header"><h4>${n(l.numeroLicitacao||'')} ${urg.badge}</h4>
             <span class="status-badge ${obterClasseStatus(l.situacao)}">${n(l.situacao||'')}</span></div>
             <div class="card-body">
@@ -4868,10 +4873,10 @@ function renderizarLicitacoes() {
                 ${renderizarFluxoCard(l)}
             </div>
             <div class="card-actions">
-                <button class="btn-icon" onclick="editarLicitacao(${l.id})" title="Editar">✏️</button>
-                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${l.id})" title="Ver Fluxo">🔄</button>
-                <button class="btn-icon" onclick="exportarPDFLicitacaoIndividual(${l.id})" title="Exportar PDF desta licitação">📄</button>
-                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${l.id})" title="Excluir">🗑️</button>
+                <button class="btn-icon" onclick="editarLicitacao(${Number(l.id)})" title="Editar">✏️</button>
+                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${Number(l.id)})" title="Ver Fluxo">🔄</button>
+                <button class="btn-icon" onclick="exportarPDFLicitacaoIndividual(${Number(l.id)})" title="Exportar PDF desta licitação">📄</button>
+                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${Number(l.id)})" title="Excluir">🗑️</button>
             </div></div>`;
     }).join('');
 
@@ -5479,7 +5484,7 @@ window.renderizarLicitacoes = function() {
             .filter(Boolean).join(', ');
 
         return `
-        <div class="licitacao-card ${urg.classe}" data-id="${l.id}">
+        <div class="licitacao-card ${urg.classe}" data-id="${Number(l.id)}">
             <div class="card-header">
                 <h4>${n(l.numeroLicitacao || '')} ${urg.badge}</h4>
                 <span class="status-badge ${obterClasseStatus(l.situacao)}">${n(l.situacao || '')}</span>
@@ -5503,10 +5508,10 @@ window.renderizarLicitacoes = function() {
                 ${fluxoHtml}
             </div>
             <div class="card-actions">
-                <button class="btn-icon" onclick="editarLicitacao(${l.id})" title="Editar">✏️</button>
-                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${l.id})" title="Ver Fluxo">🔄</button>
-                <button class="btn-icon" onclick="exportarPDFLicitacaoIndividual(${l.id})" title="Exportar PDF">📄</button>
-                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${l.id})" title="Excluir">🗑️</button>
+                <button class="btn-icon" onclick="editarLicitacao(${Number(l.id)})" title="Editar">✏️</button>
+                <button class="btn-icon" onclick="verDetalhesCompletosFluxoLicitacao(${Number(l.id)})" title="Ver Fluxo">🔄</button>
+                <button class="btn-icon" onclick="exportarPDFLicitacaoIndividual(${Number(l.id)})" title="Exportar PDF">📄</button>
+                <button class="btn-icon danger" onclick="excluirLicitacaoComConfirmacao(${Number(l.id)})" title="Excluir">🗑️</button>
             </div>
         </div>`;
     }).join('');
@@ -6035,6 +6040,8 @@ console.log('✅ Patch v17.1 — Gráficos corrigidos após carregamento async')
     console.warn('[v17.2] Chart.js não encontrado, carregando via CDN...');
 
     const script = document.createElement('script');
+    script.integrity = 'sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD';
+    script.crossOrigin = 'anonymous';
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
     script.crossOrigin = 'anonymous';
 
@@ -6050,7 +6057,9 @@ console.log('✅ Patch v17.1 — Gráficos corrigidos após carregamento async')
         console.error('[v17.2] Falha ao carregar Chart.js do CDN');
         // Tenta CDN alternativo
         const fallback = document.createElement('script');
-        fallback.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        fallback.integrity = 'sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4';
+    fallback.crossOrigin = 'anonymous';
+    fallback.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
         fallback.onload = function() {
             console.log('✅ Chart.js carregado via CDN alternativo');
             if (typeof atualizarDashboard === 'function') {
@@ -6530,12 +6539,16 @@ function garantirDependenciasPDF() {
         
         // Carrega jsPDF
         const script1 = document.createElement('script');
-        script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script1.integrity = 'sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3';
+    script1.crossOrigin = 'anonymous';
+    script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js';
         
         script1.onload = function() {
             // Carrega plugin autoTable
             const script2 = document.createElement('script');
-            script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+            script2.integrity = 'sha384-voAWf+DQNBx+Eya8tGEw2DHSo8aPM0bTyJhi+ZbLLfV6HzrvPV/UqIvc3+ULj7bS';
+    script2.crossOrigin = 'anonymous';
+    script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/5.0.2/jspdf.plugin.autotable.min.js';
             
             script2.onload = function() {
                 console.log('✅ jsPDF carregado');
@@ -9348,6 +9361,8 @@ console.log('✅ Patch v24 - Gráficos PDF melhorados + Observações visíveis 
 // Carrega plugin de datalabels se necessário
 if (typeof Chart !== 'undefined' && !Chart.registry.plugins.get('datalabels')) {
     const script = document.createElement('script');
+    script.integrity = 'sha384-M00GJNq2IplZCB3+JOJEl2H0un45ODvqJSSnIc4DvG8gPn8RX5ToITFXcv3AvOx5';
+    script.crossOrigin = 'anonymous';
     script.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js';
     script.onload = function() {
         Chart.register(ChartDataLabels);
@@ -9495,16 +9510,16 @@ document.addEventListener('DOMContentLoaded', adicionarValoresAosGraficos);
             }
             
             html += `
-                <div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${req.tipo || ''}">
+                <div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${SecurityCore.escapeHTML(req.tipo || '')}">
                     <div class="workflow-header">
                         <h4>
-                            <span class="badge-tipo ${req.tipo || ''}">${req.tipo || 'N/A'}</span> 
+                            <span class="badge-tipo ${SecurityCore.escapeHTML(req.tipo || '')}">${SecurityCore.escapeHTML(req.tipo || 'N/A')}</span>
                             ${Validador?.sanitizarHTML(req.numero || 'N/A') || (req.numero || 'N/A')}
                             ${req.fluxoPersonalizado ? `<span title="Fluxo Personalizado: ${Validador?.sanitizarHTML(nomeFluxo || 'Sem nome') || (nomeFluxo || 'Sem nome')}">🎯</span>` : ''}
                             ${prazoInfo}
                         </h4>
                         <div class="btn-group">
-                            <span class="badge-prioridade ${req.prioridade || 'media'}">${req.prioridade || 'media'}</span>
+                            <span class="badge-prioridade ${SecurityCore.escapeHTML(req.prioridade || 'media')}">${SecurityCore.escapeHTML(req.prioridade || 'media')}</span>
                             <!-- STATUS AQUI - GARANTIDO -->
                             <span class="badge ${statusClass}" style="font-weight: 600; padding: 4px 10px;">${Validador?.sanitizarHTML(req.status || 'Em Análise') || (req.status || 'Em Análise')}</span>
                         </div>
@@ -9551,12 +9566,12 @@ document.addEventListener('DOMContentLoaded', adicionarValoresAosGraficos);
                         </div>
                     ` : ''}
                     <div class="workflow-actions">
-                        <button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${req.id})" ${workflowIndex <= 0 ? 'disabled' : ''}>↩ Voltar</button>
-                        <button class="btn-workflow" onclick="avancarWorkflow(${req.id})" ${workflowIndex >= workflow.length - 1 ? 'disabled' : ''}>▶ Avançar</button>
-                        ${podeEditar ? `<button class="btn-workflow warning" onclick="editarRequisicao(${req.id})">✏️ Editar</button>` : ''}
-                        <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${req.id})">📋 Gerar Licitação</button>
-                        ${podeExcluir ? `<button class="btn-workflow danger" onclick="excluirRequisicaoComConfirmacao(${req.id})">🗑️ Excluir</button>` : ''}
-                        <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${req.id})">📊 Ver Fluxo</button>
+                        <button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${Number(req.id)})" ${workflowIndex <= 0 ? 'disabled' : ''}>↩ Voltar</button>
+                        <button class="btn-workflow" onclick="avancarWorkflow(${Number(req.id)})" ${workflowIndex >= workflow.length - 1 ? 'disabled' : ''}>▶ Avançar</button>
+                        ${podeEditar ? `<button class="btn-workflow warning" onclick="editarRequisicao(${Number(req.id)})">✏️ Editar</button>` : ''}
+                        <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${Number(req.id)})">📋 Gerar Licitação</button>
+                        ${podeExcluir ? `<button class="btn-workflow danger" onclick="excluirRequisicaoComConfirmacao(${Number(req.id)})">🗑️ Excluir</button>` : ''}
+                        <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${Number(req.id)})">📊 Ver Fluxo</button>
                     </div>
                 </div>
             `;
@@ -9622,11 +9637,7 @@ if (typeof window.formatarMoeda !== 'function') {
 if (typeof window.Validador === 'undefined') {
     window.Validador = {
         sanitizarHTML: function(str) {
-            if (!str) return '';
-            if (typeof str !== 'string') str = String(str);
-            const div = document.createElement('div');
-            div.textContent = str;
-            return div.innerHTML;
+            return SecurityCore.escapeHTML(str);
         }
     };
 }
@@ -10563,15 +10574,13 @@ function injetarUploadBrasao() {
     }
 }
 
-window.processarUploadBrasao = function(input) {
+window.processarUploadBrasao = async function(input) {
     const file = input.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64 = e.target.result;
-
-        // Salva no localStorage e no cache
+    try {
+        const base64 = await SecurityCore.imagemSegura(file);
+        // Persiste somente a imagem decodificada e reencodificada.
         try {
             localStorage.setItem('brasao_base64', base64);
         } catch(err) {
@@ -10587,8 +10596,9 @@ window.processarUploadBrasao = function(input) {
         _atualizarBrasaoHeader(base64);
 
         mostrarNotificacao('✅ Brasão salvo! Aparecerá no cabeçalho e nos PDFs.', 'success');
-    };
-    reader.readAsDataURL(file);
+    } catch (erro) {
+        mostrarNotificacao(erro.message || 'Imagem inválida.', 'error');
+    } finally { input.value = ''; }
 };
 
 window.removerBrasao = function() {
@@ -10877,16 +10887,16 @@ window.renderizarRequisicoes = function() {
         }
 
         return `
-        <div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${req.tipo || ''}">
+        <div class="workflow-card ${req.emergencial ? 'emergencial' : ''}" data-tipo="${SecurityCore.escapeHTML(req.tipo || '')}">
             <div class="workflow-header">
                 <h4>
-                    <span class="badge-tipo ${req.tipo || ''}">${req.tipo || 'N/A'}</span>
+                            <span class="badge-tipo ${SecurityCore.escapeHTML(req.tipo || '')}">${SecurityCore.escapeHTML(req.tipo || 'N/A')}</span>
                     ${n(req.numero || 'N/A')}
                     ${req.fluxoPersonalizado ? `<span title="Fluxo: ${n(nomeFluxo || 'Sem nome')}">🎯</span>` : ''}
                     ${prazoInfo}
                 </h4>
                 <div class="btn-group">
-                    <span class="badge-prioridade ${req.prioridade || 'media'}">${req.prioridade || 'media'}</span>
+                    <span class="badge-prioridade ${SecurityCore.escapeHTML(req.prioridade || 'media')}">${SecurityCore.escapeHTML(req.prioridade || 'media')}</span>
                     <span class="badge ${statusClass}" style="font-weight:600;padding:4px 10px;">${n(req.status || 'Em Análise')}</span>
                 </div>
             </div>
@@ -10912,12 +10922,12 @@ window.renderizarRequisicoes = function() {
                 </div>` : ''}
             </div>
             <div class="workflow-actions">
-                <button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${req.id})" ${wIdx <= 0 ? 'disabled' : ''}>↩ Voltar</button>
-                <button class="btn-workflow" onclick="avancarWorkflow(${req.id})" ${wIdx >= workflow.length - 1 ? 'disabled' : ''}>▶ Avançar</button>
-                ${podeEditar  ? `<button class="btn-workflow warning" onclick="editarRequisicao(${req.id})">✏️ Editar</button>` : ''}
-                <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${req.id})">📋 Gerar Licitação</button>
-                ${podeExcluir ? `<button class="btn-workflow danger"  onclick="excluirRequisicaoComConfirmacao(${req.id})">🗑️ Excluir</button>` : ''}
-                <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${req.id})">📊 Ver Fluxo</button>
+                <button class="btn-workflow secondary" onclick="voltarWorkflowRequisicao(${Number(req.id)})" ${wIdx <= 0 ? 'disabled' : ''}>↩ Voltar</button>
+                <button class="btn-workflow" onclick="avancarWorkflow(${Number(req.id)})" ${wIdx >= workflow.length - 1 ? 'disabled' : ''}>▶ Avançar</button>
+                ${podeEditar  ? `<button class="btn-workflow warning" onclick="editarRequisicao(${Number(req.id)})">✏️ Editar</button>` : ''}
+                <button class="btn-workflow success" onclick="gerarLicitacaoDaRequisicao(${Number(req.id)})">📋 Gerar Licitação</button>
+                ${podeExcluir ? `<button class="btn-workflow danger"  onclick="excluirRequisicaoComConfirmacao(${Number(req.id)})">🗑️ Excluir</button>` : ''}
+                <button class="btn-workflow info" onclick="verDetalhesFluxoRequisicao(${Number(req.id)})">📊 Ver Fluxo</button>
             </div>
         </div>`;
     }).join('');
@@ -11719,8 +11729,8 @@ console.log('✅ Patch v25.5 — Ordenação de requisições corrigida');
                                 <span class="dispensa-limite-utilizado ${classeLimite}">
                                     ${percentual.toFixed(0)}% do limite
                                 </span>
-                                <button class="btn-icon" onclick="editarDispensa(${d.id})" title="Editar">✏️</button>
-                                <button class="btn-icon danger" onclick="excluirDispensa(${d.id})" title="Excluir">🗑️</button>
+                                <button class="btn-icon" onclick="editarDispensa(${Number(d.id)})" title="Editar">✏️</button>
+                                <button class="btn-icon danger" onclick="excluirDispensa(${Number(d.id)})" title="Excluir">🗑️</button>
                             </div>
                         </div>
                         <div class="card-body">
@@ -14960,9 +14970,9 @@ document.addEventListener('click',event=>{
 /* ---------------- AUTH SEGURO / SUPABASE AUTH ---------------- */
 const AuthSeguro = {
     storageKey:'supa_session_saude_v33',
-    session(){ try{return JSON.parse(localStorage.getItem(this.storageKey)||'null')}catch{return null} },
-    save(s){ localStorage.setItem(this.storageKey,JSON.stringify(s)); },
-    clear(){ localStorage.removeItem(this.storageKey); localStorage.removeItem('auth_token'); localStorage.removeItem('usuario_logado'); },
+    session(){ try{return JSON.parse(sessionStorage.getItem(this.storageKey)||'null')}catch{return null} },
+    save(s){ sessionStorage.setItem(this.storageKey,JSON.stringify(s)); localStorage.removeItem(this.storageKey); },
+    clear(){ sessionStorage.removeItem(this.storageKey); SecurityCore.limparDadosLocais(localStorage); },
     async login(email,password){
         this.clear();
         const resp=await fetch(`${SUPABASE_CONFIG.url}/auth/v1/token?grant_type=password`,{
@@ -15006,7 +15016,7 @@ const AuthSeguro = {
     async logout(){
         try{
             const t=await this.token();
-            if(t) await fetch(`${SUPABASE_CONFIG.url}/auth/v1/logout`,{method:'POST',headers:{apikey:SUPABASE_CONFIG.key,Authorization:`Bearer ${t}`}});
+            if(t) await fetch(`${SUPABASE_CONFIG.url}/auth/v1/logout`,{method:'POST',headers:{apikey:SUPABASE_CONFIG.key,Authorization:`Bearer ${t}`},signal:AbortSignal.timeout(8000)});
         }catch(e){
             console.warn('[Auth] Não foi possível encerrar a sessão remota:',e);
         }finally{
@@ -15016,6 +15026,8 @@ const AuthSeguro = {
     }
 };
 window.AuthSeguro=AuthSeguro;
+// Tokens antigos persistentes não são reutilizados; exige novo login nesta aba.
+if (!AuthSeguro.session()) AuthSeguro.clear();
 
 // Desativa definitivamente os fallbacks locais dos patches antigos.
 if(typeof AuthSupabase!=='undefined'){
@@ -15164,13 +15176,17 @@ window.carregarDados=async function(){
             localStorage.setItem('setores',JSON.stringify(AppState.setores));localStorage.setItem('modalidades',JSON.stringify(AppState.modalidades));
             localStorage.setItem('fluxos',JSON.stringify(AppState.fluxos));localStorage.setItem('dispensas',JSON.stringify(row.dispensas||[]));
         }catch(e){}
-    }else{
+    }else if(podeLerDadosInternos){
         try{
             AppState.licitacoes=JSON.parse(localStorage.getItem('licitacoes'))||[];AppState.requisicoes=JSON.parse(localStorage.getItem('requisicoes'))||[];
             AppState.setores=JSON.parse(localStorage.getItem('setores'))||[];AppState.modalidades=JSON.parse(localStorage.getItem('modalidades'))||[];
             AppState.fluxos=JSON.parse(localStorage.getItem('fluxos'))||[];AppState.dispensas=JSON.parse(localStorage.getItem('dispensas'))||[];
             if(window.EstadoDispensas) window.EstadoDispensas.dispensas=AppState.dispensas;
         }catch(e){}
+    }else{
+        SecurityCore.limparDadosLocais(localStorage);
+        for (const chave of ['licitacoes','requisicoes','setores','modalidades','fluxos','dispensas']) AppState[chave]=[];
+        if(window.EstadoDispensas) window.EstadoDispensas.dispensas=[];
     }
     try{if(AppState.licitacoes.length) ultimoIdLicitacao=Math.max(...AppState.licitacoes.map(l=>l.id||0));}catch(e){}
     try{if(AppState.requisicoes.length) ultimoIdRequisicao=Math.max(...AppState.requisicoes.map(r=>r.id||0));}catch(e){}
@@ -16949,7 +16965,7 @@ window.carregarBrasaoBase64=carregarBrasaoInstitucionalV37;
 window.brasaoParaBase64=carregarBrasaoInstitucionalV37;
 window.desenharCabecalhoPDF=async(doc,titulo,subtitulo)=>desenharCabecalhoRelatorioV37(doc,titulo,subtitulo,await carregarBrasaoInstitucionalV37());
 const processarUploadBrasaoAnteriorV37=window.processarUploadBrasao;
-if(typeof processarUploadBrasaoAnteriorV37==='function')window.processarUploadBrasao=function(...args){const retorno=processarUploadBrasaoAnteriorV37.apply(this,args);setTimeout(aplicarBrasaoInstitucionalV37,350);return retorno;};
+if(typeof processarUploadBrasaoAnteriorV37==='function')window.processarUploadBrasao=async function(...args){const retorno=await processarUploadBrasaoAnteriorV37.apply(this,args);aplicarBrasaoInstitucionalV37();return retorno;};
 const removerBrasaoAnteriorV37=window.removerBrasao;
 if(typeof removerBrasaoAnteriorV37==='function')window.removerBrasao=function(...args){const retorno=removerBrasaoAnteriorV37.apply(this,args);PainelUnificadoV37.brasaoPromise=null;setTimeout(aplicarBrasaoInstitucionalV37,0);return retorno;};
 try{mostrarDashboardUnificado=window.mostrarDashboardUnificado;exportarRelatorioCompleto=window.exportarRelatorioCompleto;exportarPDF=window.exportarPDF;exportarDispensasPDF=window.exportarDispensasPDF;carregarBrasaoBase64=window.carregarBrasaoBase64;brasaoParaBase64=window.brasaoParaBase64;desenharCabecalhoPDF=window.desenharCabecalhoPDF;}catch(_){ }
